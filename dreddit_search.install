@@ -1,7 +1,7 @@
 <?php
   /**
    * @file
-   * Install, update and uninstall functions for the Reddit News module.
+   * Install, update and uninstall functions for the Dreddit Search module.
    */
 
   /**
@@ -13,11 +13,11 @@
    *
    * @url: https://api.drupal.org/api/drupal/modules!system!system.api.php/function/hook_enable/7
    */
-  function reddit_news_enable() {
+  function dreddit_search_enable() {
 
     // Set module specific variables.
-    variable_set('reddit_news_limit', 10);
-    variable_set('reddit_news_category', '');
+    variable_set('dreddit_search_limit', 5);
+    variable_set('dreddit_search_category', '');
   }
 
   /**
@@ -29,10 +29,10 @@
    *
    * @url: https://api.drupal.org/api/drupal/modules!system!system.api.php/function/hook_uninstall/7
    */
-  function reddit_news_uninstall() {
+  function dreddit_search_uninstall() {
 
-    variable_set('reddit_news_limit');
-    variable_set('reddit_news_category');
+    variable_set('dreddit_search_limit');
+    variable_set('dreddit_search_category');
 
     drupal_set_message($message = t('Module specific variables removed.'), $type = 'status');
   }

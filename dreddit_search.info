@@ -1,0 +1,11 @@
+name = Dreddit Search
+description = Provides a block with recent Dreddit Search.
+
+core = 7.x
+package = Custom
+
+; Add a style sheet for all media
+stylesheets[all][] = dreddit_search.main.css
+
+; Link to configuration page, set in dreddit_search.module: dreddit_search_menu()
+configure = admin/config/content/dreddit_search

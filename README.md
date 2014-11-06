@@ -1,7 +1,6 @@
-RedditNews-Drupal-Exercise
+Dreddit Search
 ==========================
 
-Reddit News module for Drupal
+Reddit Search module for Drupal
 
-Loading data from the Reddit JSON API e.g.: 
-https://www.reddit.com/r/cats.json
+Based on [RedditNews-Drupal-Exercise](https://github.com/henrikwebdev/RedditNews-Drupal-Exercise)

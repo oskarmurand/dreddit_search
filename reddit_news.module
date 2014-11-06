@@ -1,0 +1,254 @@
+<?php
+  /**
+   * @file
+   * Creates block and configuration to Reddit News module.
+   * The module uses Reddits open REST API to fetch recent news, and 
+   * displays then in a block.
+   * All rights reserved for Reddit Developer API (2014), for news content.
+   */
+
+  /**
+   * Implements hook_help().
+   *
+   * You can add documentation and help here (in admin/help#reddit_news). This
+   * documentation can help the users use and extend you module.
+   *
+   * @url: https://api.drupal.org/api/drupal/modules!help!help.api.php/function/hook_help/7
+   */
+  function reddit_news_help($path, $arg) {
+    switch ($path) {
+      case 'admin/setting/reddit_news':
+        return t('This module displays a block which shows a list recent Reddit news..');
+
+      case 'admin/help#reddit_news';
+        $output = '<h2>' . t('About') . '</h2>';
+        $output .= '<p>' . t('Displays recent news from Reddit.') . '</p>';
+        $output .= '<p>' . t('The news is fetched with Reddits open REST API, all rights reserved to Reddit (2014).') . '</p>';
+        return $output;
+    }
+  }
+
+  /**
+   * Implements hook_block_info().
+   * 
+   * Declares a block to provide to Drupal. This can also specify block
+   * configuration settings, like here where the cache is determined be the
+   * user role.
+   *
+   * @url: https://api.drupal.org/api/drupal/modules!block!block.api.php/function/hook_block_info/7
+   */
+  function reddit_news_block_info() {
+    $blocks['reddit_news'] = array(
+      'info' => t('Reddit News'),
+      'cache' => DRUPAL_CACHE_PER_ROLE,
+    );
+
+    return $blocks;
+  }
+
+  /**
+   * Implements hook_menu().
+   *
+   * Defines paths to provide page callbacks and menu items for the site.
+   * Here it defines a configuration page with callback to a form, we'll
+   * create later on.
+   *
+   * @url: https://api.drupal.org/api/drupal/modules!system!system.api.php/function/hook_menu/7
+   */
+  function reddit_news_menu() {
+    $items = array();
+
+    // Module configuration page.
+    $items['admin/config/content/reddit_news'] = array(
+      'title' => 'Reddit News',
+      'description' => 'Configuration for Reddit News module',
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array('reddit_news_form'),
+      'access arguments' => array('administer site configuration'),
+      'type' => MENU_NORMAL_ITEM,
+    );
+
+    return $items;
+  }
+
+  /**
+   * Custom API content callback.
+   *
+   * This callback is a custom callback to get Reddit news data.
+   * Here we request the data, preprocesses it and creates a list of news. The 
+   * array '$items' contains all the news, we'll display it as a unordered list
+   * later on.
+   *
+   * drupal_http_request: https://api.drupal.org/api/drupal/includes!common.inc/function/drupal_http_request/7
+   * drupal_json_decode: https://api.drupal.org/api/drupal/includes!common.inc/function/drupal_json_decode/7
+   */
+  function reddit_news_api_content() {
+
+    // API path.
+    $api_url = 'https://www.reddit.com/' . variable_get('reddit_news_category') . '.json';
+    // Query parameters.
+    $query = $api_url . '?limit=' . variable_get('reddit_news_limit');
+    // Query options.
+    $options = array(
+      'method' => 'GET',
+      'timeout' => 5,
+      'headers' => array(
+        'Content-Type' => 'application/json; charset=utf-8',
+        // 'Cache-Control' => 'no-cache'
+      ),
+    );
+
+    // Request data.
+    $request = drupal_http_request($query);
+
+    // Convert data into associative array.
+    $result = drupal_json_decode($request->data);
+
+    // Loop through news.
+    foreach($result['data']['children'] as $news) {
+
+      // Preprocess raw data.
+      $news_id = !empty($news['data']['id']) ? $news['data']['id'] : 0;
+      $news_headline = !empty($news['data']['title']) ? $news['data']['title'] : 'No title';
+      $news_thumbnail = !empty($news['data']['thumbnail']) ? $news['data']['thumbnail'] : '';
+      $news_article_href = !empty($news['data']['url']) ? $news['data']['url'] : 'http://www.reddit.com/';
+
+      // Drupalized data.
+      $reddit_news_headline = l($news_headline, $news_article_href, $option = array(
+        'attributes' => array(
+          'class' => 'headline_href',
+          'target' => '_blank',
+        ),
+      ));
+      
+      // Create li item with content.
+      $items[] = array(
+        'data' => '<img src="' . $news_thumbnail . '"><h3 class="headline">' . $reddit_news_headline . '</h3>',
+        'id' => 'news-' . $news_id,
+      );
+    }
+
+    // If no content is found, return fail.
+    if (empty($items)) {
+      $items[] = array(
+        'data' => 'No news available',
+      );
+    }
+
+    return $items;
+
+  }
+
+
+  /**
+   * Implements hook_block_view().
+   *
+   * Creates content for our block. It sets the title for the block, and returns
+   * our news (from our custom callback) as a ul-list, with the id 'reddit-news'.
+   *
+   * @url: https://api.drupal.org/api/drupal/modules!block!block.api.php/function/hook_block_view/7
+   */
+  function reddit_news_block_view($delta = '') {
+    $block = array();
+    $category = '';
+
+    // Category.
+    switch(variable_get('reddit_news_category')) {
+      case '': $category = ''; break;
+      case 'domain/imgur.com': $category = 'imgur.com'; break;
+      case 'r/cats': $category = 'Cats'; break;
+      default: $category = '';
+    }
+
+    switch ($delta) {
+      case 'reddit_news':
+        // List attributes.
+        $attributes = array(
+          'id' => 'reddit_news',
+        );
+
+        // Set block title.
+        $block['subject'] = t('Reddit ' . $category . ' News');
+
+        // Get content from API.
+        $items = reddit_news_api_content();
+
+        // Print list.
+        $block['content'] = theme('item_list', array(
+          'items' => $items,
+          'type' => 'ul',
+          'attributes' => array(
+            'id' => 'reddit-news',
+          ),
+        ));
+        // $block['content'] = 'Hello World';
+
+        return $block;
+    }
+  }
+
+  /**
+   * Implements hook_form().
+   *
+   * Creates a configuration form. See the API reference for info on different
+   * form inputs. Here we only have two textfields.
+   *
+   * From API Reference: https://api.drupal.org/api/drupal/developer!topics!forms_api_reference.html/7
+   *
+   * @url: https://api.drupal.org/api/drupal/modules!node!node.api.php/function/hook_form/7
+   */
+  function reddit_news_form($form, &$form_state) {
+    // Fieldset.
+    $form['reddit_api'] = array(
+      '#type' => 'fieldset',
+      '#title' => t('Reddit API'),
+      '#weight' => 0,
+      '#collapsible' => TRUE,
+      '#collapsed' => FALSE,
+    );
+    // Textfield for limit.
+    $form['reddit_api']['reddit_news_limit'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Limit'),
+      '#default_value' => variable_get('reddit_news_limit', 10),
+      '#size' => 5,
+      '#maxlength' => 2,
+      '#description' => t('Limit number of news articles shown.'),
+      '#required' => TRUE,
+    );
+    $form['reddit_api']['reddit_news_category'] = array(
+      '#type' => 'select',
+      '#title' => t('Category'),
+      '#default_value' => variable_get('reddit_news_category'),
+      '#options' => array(
+        '' => t('All'),
+        'domain/imgur.com' => t('imgur.com'),
+        'r/cats' => t('Cats'),
+      ),
+      '#description' => t('Choose category to fetch content from.'),
+    );
+
+    return system_settings_form($form);
+  }
+
+  /**
+   * Implements hook_validate().
+   *
+   * Validation for configuration form. Since we need a number in the
+   * limit-textfield, we check that the inout is correct.
+   *
+   * @url: https://api.drupal.org/api/drupal/modules!node!node.api.php/function/hook_validate/7
+   */
+  function reddit_news_form_validate($form, &$form_state) {
+    // Get current value from input.
+    $reddit_news_limit = $form_state['values']['reddit_news_limit'];
+
+    // Check that input is a number.
+    if (!is_numeric($reddit_news_limit)) {
+      form_set_error('reddit_news_limit', t('Limit must be a number.'));
+    }
+    // Check that input is not negative.
+    elseif ($reddit_news_limit <= 0) {
+      form_set_error('reddit_news_limit', t('Limit must be between 1 and 99.'));
+    }
+  }

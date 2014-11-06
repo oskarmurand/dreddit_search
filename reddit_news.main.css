@@ -1,0 +1,29 @@
+/***** Reddit NEWS STYLES *****/
+#content ul#reddit-news {
+  margin: 0;
+  padding: 0;
+}
+#content ul#reddit-news li {
+  list-style: none;
+  border-top: 1px solid #cdcdcd;
+  display: block;
+  width: 100%;
+  clear: both;
+  margin-bottom: 11px;
+  padding: 10px 0;
+}
+#content ul#reddit-news li .headline {
+  font-size: 18px;
+  margin: 0;
+}
+#content ul#reddit-news li img {
+  max-width: 54px;
+  max-height: 54px;
+  display: block;
+  float: left;
+  margin-right: 7px;
+}
+#content ul#reddit-news li .headline_href {
+  padding-left: 12px;
+  color: black;
+}

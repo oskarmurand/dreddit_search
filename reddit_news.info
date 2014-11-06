@@ -1,0 +1,11 @@
+name = Reddit News
+description = Provides a block with recent Reddit news.
+
+core = 7.x
+package = Custom
+
+; Add a style sheet for all media
+stylesheets[all][] = reddit_news.main.css
+
+; Link to configuration page, set in reddit_news.module: reddit_news_menu()
+configure = admin/config/content/reddit_news
